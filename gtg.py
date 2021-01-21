@@ -70,7 +70,7 @@ def fft2gammatonemx(nfft, sr=20000, nfilts=64, width=1.0, minfreq=100,
 
     return wts, cfreqs
 
-def gammatonegram(x,sr=20000,twin=0.02,thop=0.010,N=128,
+def gammatonegram(spectrogram,sr=20000,nfft=1024,nhop=160,N=128,
                   fmin=50,fmax=10000,width=1.0):
     """
     # Ellis' description in MATLAB:
@@ -99,12 +99,8 @@ def gammatonegram(x,sr=20000,twin=0.02,thop=0.010,N=128,
     # assert(x.dtype == 'int16')
 
     # How long a window to use relative to the integration window requested
-    winext = 1;
-    twinmod = winext*twin;
-    nfft = int(2**(np.ceil(np.log(2*twinmod*sr)/np.log(2))))
-    print(nfft)
-    nhop = int(np.round(thop*sr))
-    nwin = int(np.round(twinmod*sr))
+
+    nwin = nfft
     [gtm,f] = fft2gammatonemx(nfft, sr, N, width, fmin, fmax, int(nfft/2+1))
     # perform FFT and weighting in amplitude domain
     # note: in MATLAB, abs(spectrogram(X, hanning(nwin), nwin-nhop, nfft, SR))
@@ -112,9 +108,8 @@ def gammatonegram(x,sr=20000,twin=0.02,thop=0.010,N=128,
     # in python approx = sps.spectrogram(x, fs=sr, window='hann', nperseg=nwin,
     #                    noverlap=nwin-nhop, nfft=nfft, detrend=False,
     #                    scaling='density', mode='magnitude')
-    plotF, plotT, Sxx = sps.spectrogram(x, fs=sr, window='hann', nperseg=1024,
-                                noverlap=1024-nhop, nfft=nfft, detrend=False,
-                                scaling='spectrum', mode='magnitude')
+
+    Sxx = spectrogram
     print("Spectrogram", np.min(Sxx), np.max(Sxx))
     y = (1/nfft)*np.dot(gtm,Sxx)
 

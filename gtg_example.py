@@ -3,6 +3,7 @@ import numpy as np
 from scipy.stats import norm as ssn
 import scipy.io.wavfile as wf
 import matplotlib.pyplot as plt
+import scipy.signal as sps
 
 """
 Example of using python gammatonegram code
@@ -72,7 +73,7 @@ if __name__ == '__main__':
         sound = sound
 
     print(sound.dtype)
-    sxx, center_frequencies = gtg_in_dB(sound, sampling_rate)
+
     #gtgplot(sxx, center_frequencies, len(sound), sampling_rate)
 
 
@@ -81,25 +82,42 @@ if __name__ == '__main__':
 
     print(len(audio_tensor))
     # generate power spectrogram
-    mels = librosa.feature.melspectrogram(audio_tensor, sr=sr, n_fft=1024, hop_length=160, center=False, fmin=20)
+
+    nfft = 1024
+    print(nfft)
+    nhop = 160
+    fmin=20
+    plotF, plotT, Sxx = sps.spectrogram(audio_tensor, fs=sr, window='hann', nperseg=nfft,
+                                noverlap=nfft-nhop, nfft=nfft, detrend=False,
+                                scaling='spectrum', mode='magnitude')
+
+    sxx, center_frequencies = gammatonegram(Sxx,sr=sr,nfft=nfft,nhop=nhop,N=128,fmin=fmin,fmax=int(sr/2),width=1.0)
+
+    mels = librosa.feature.melspectrogram(S=Sxx, sr=sr, n_fft=nfft, hop_length=nhop, center=False, fmin=fmin)
     # convert power spectrogram to dB
     print("Mels", np.min(mels), np.max(mels))
-    log_spectrogram = librosa.power_to_db(mels) #convert to dB
-    print("--> Log_spectrogram", np.min(log_spectrogram), np.max(log_spectrogram))
-    print(log_spectrogram.shape)
+    # mels = librosa.power_to_db(mels) #convert to dB
+    # sxx = librosa.power_to_db(sxx)
+
+    log_constant=1e-80
+    sxx = 10.*np.log10(sxx) #convert to dB
+
+    mels = 10.*np.log10(mels) #convert to dB
+    print("--> Log_spectrogram", np.min(mels), np.max(mels))
+    print(mels.shape)
     plt.subplot(1,2,1)
-    librosa.display.specshow(log_spectrogram, cmap='jet',
+    librosa.display.specshow(mels, cmap='jet',
                          sr = sr, hop_length = 160, fmin = 20,
                          y_axis='mel', fmax=sampling_rate/2,
-                         x_axis='time', vmax=0, vmin=-60)
+                         x_axis='time')
     plt.ylabel('Frequency (Hz)', fontsize=10)
-    # plt.colorbar(format='%+2.0f dB')
+    plt.colorbar(format='%+2.0f dB')
     plt.title('Mel spectrogram')
     plt.subplot(1,2,2)
 
     dB_threshold=-50.0
     dB_max=0
-    t_space=100
+    t_space=10
     f_space=20
 
     time_per_pixel = len(sound)/(1.*sampling_rate*sxx.shape[1])
