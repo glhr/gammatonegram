@@ -77,7 +77,7 @@ if __name__ == '__main__':
     #gtgplot(sxx, center_frequencies, len(sound), sampling_rate)
 
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(10, 5))
     audio_tensor, sr = librosa.load(input, sr=None)
 
     print(len(audio_tensor))
@@ -96,32 +96,47 @@ if __name__ == '__main__':
     mels = librosa.feature.melspectrogram(S=Sxx, sr=sr, n_fft=nfft, hop_length=nhop, center=False, fmin=fmin)
     # convert power spectrogram to dB
     print("Mels", np.min(mels), np.max(mels))
-    # mels = librosa.power_to_db(mels) #convert to dB
-    # sxx = librosa.power_to_db(sxx)
+    ref = np.max(np.vstack((mels,sxx)))
+    # mels = librosa.power_to_db(mels, ref=np.max) #convert to dB
+    # sxx = librosa.power_to_db(sxx, ref=np.max)
 
-    log_constant=1e-80
-    sxx = 10.*np.log10(sxx) #convert to dB
-
-    mels = 10.*np.log10(mels) #convert to dB
+    # log_constant=1e-80
+    sxx = 20.*np.log10(sxx) #convert to dB
+    #
+    mels = 20.*np.log10(mels) #convert to dB
     print("--> Log_spectrogram", np.min(mels), np.max(mels))
     print(mels.shape)
     plt.subplot(1,2,1)
-    librosa.display.specshow(mels, cmap='jet',
-                         sr = sr, hop_length = 160, fmin = 20,
-                         y_axis='mel', fmax=sampling_rate/2,
-                         x_axis='time')
-    plt.ylabel('Frequency (Hz)', fontsize=10)
-    plt.colorbar(format='%+2.0f dB')
-    plt.title('Mel spectrogram')
-    plt.subplot(1,2,2)
 
+    t_space=20
+    f_space=20
     dB_threshold=-50.0
     dB_max=0
-    t_space=10
-    f_space=20
-
-    time_per_pixel = len(sound)/(1.*sampling_rate*sxx.shape[1])
+    time_per_pixel = 0.01
     t = time_per_pixel * np.arange(sxx.shape[1])
+
+    vmax = None
+    vmin = None
+
+    librosa.display.specshow(mels, cmap='jet',
+                         sr = sr, hop_length = nhop, fmin = fmin,
+                         y_axis='mel', fmax=sampling_rate/2,
+                         x_axis='time', x_coords = np.linspace(0,3690,num=94), vmax = vmax, vmin = vmin)
+    plt.xticks([i*39 for i in range(sxx.shape[1])[::t_space]], labels=(t[::t_space]*100.).astype(int)/100., fontsize=8)
+    plt.yticks(fontsize=8)
+    plt.xlim(0,sxx.shape[1])
+    plt.xlabel('Time (s)',fontsize=10)
+    plt.ylabel('Frequency (Hz)', fontsize=10)
+    plt.rc('xtick',labelsize=8)
+    plt.rc('ytick',labelsize=8)
+    plt.colorbar(format='%+2.0f dB')
+    plt.title('Mel spectrogram')
+    plt.axis('equal')
+    plt.box(on=None)
+    plt.subplot(1,2,2)
+
+
+    print(time_per_pixel)
 
     import png
     arr = sxx+np.abs(np.min(sxx))
@@ -135,14 +150,20 @@ if __name__ == '__main__':
     print(sxx.shape)
 
 
-    plt.pcolormesh(sxx, cmap='jet')
+    plt.pcolormesh(sxx, cmap='jet',  vmax = vmax, vmin = vmin)
 
     plt.xlabel('Time (s)',fontsize=10)
-    plt.xticks(range(sxx.shape[1])[::t_space], labels=(t[::t_space]*100.).astype(int)/100.)
+    print()
+    print(range(sxx.shape[1])[::t_space])
+    plt.xticks(range(sxx.shape[1])[::t_space], labels=(t[::t_space]*100.).astype(int)/100., fontsize=8)
     plt.xlim(0,sxx.shape[1])
-    plt.yticks(range(len(center_frequencies))[::f_space], labels=center_frequencies.astype(int)[::f_space])
+    plt.yticks(range(len(center_frequencies))[::f_space], labels=center_frequencies.astype(int)[::f_space], fontsize=8)
     plt.ylim(0,len(center_frequencies))
+    plt.rc('xtick',labelsize=8)
+    plt.rc('ytick',labelsize=8)
     plt.colorbar(format='%+2.0f dB')
     plt.title('Gammatonegram')
     plt.tight_layout()
+    plt.axis('equal')
+    plt.box(on=None)
     plt.show()
