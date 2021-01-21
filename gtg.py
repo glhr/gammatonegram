@@ -96,7 +96,7 @@ def gammatonegram(x,sr=20000,twin=0.02,thop=0.010,N=128,
     #Entirely skipping Malcolm's function, because would require
     #altering ERBFilterBank code as well.
     #i.e., in Ellis' code: usefft = 1
-    assert(x.dtype == 'int16')
+    # assert(x.dtype == 'int16')
 
     # How long a window to use relative to the integration window requested
     winext = 1;
@@ -115,6 +115,7 @@ def gammatonegram(x,sr=20000,twin=0.02,thop=0.010,N=128,
     plotF, plotT, Sxx = sps.spectrogram(x, fs=sr, window='hann', nperseg=1024,
                                 noverlap=1024-nhop, nfft=nfft, detrend=False,
                                 scaling='spectrum', mode='magnitude')
+    print("Spectrogram", np.min(Sxx), np.max(Sxx))
     y = (1/nfft)*np.dot(gtm,Sxx)
 
     return y, f

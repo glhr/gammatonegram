@@ -11,6 +11,7 @@ mcusi@mit.edu, 2018 Sept 24
 
 def gtg_in_dB(sound, sampling_rate, log_constant=1e-80, dB_threshold=-50.0, fmin=20):
     """ Convert sound into gammatonegram, with amplitude in decibels"""
+    print("Sound", np.min(sound), np.max(sound))
     sxx, center_frequencies = gammatonegram(sound, sr=sampling_rate, fmin=fmin, fmax=int(sampling_rate/2.))
     print("Gammatones", np.min(sxx), np.max(sxx))
     sxx[sxx == 0] = log_constant
@@ -56,11 +57,12 @@ if __name__ == '__main__':
     import librosa
     import librosa.display
 
-    input = "1-0-smartlab_chen-1.wav"
+    input = "1605001210.0062447-0.wav"
 
-    sampling_rate , sound = wf.read(input)
+    # sampling_rate , sound = wf.read(input)
+
+    sound, sampling_rate = librosa.load(input, sr=16000)
     print(np.max(sound))
-    #sound, sampling_rate = librosa.load('1-0-smartlab_chen-1.wav', sr=None)
     # print(sampling_rate)
     # print(len(sound))
 
@@ -70,7 +72,7 @@ if __name__ == '__main__':
         sound = sound
 
     print(sound.dtype)
-    sxx, center_frequencies = gtg_in_dB(sound.astype(np.int16), sampling_rate)
+    sxx, center_frequencies = gtg_in_dB(sound, sampling_rate)
     #gtgplot(sxx, center_frequencies, len(sound), sampling_rate)
 
 
@@ -115,7 +117,7 @@ if __name__ == '__main__':
     print(sxx.shape)
 
 
-    plt.pcolormesh(sxx, vmax=0, vmin=-60, cmap='jet')
+    plt.pcolormesh(sxx, cmap='jet')
 
     plt.xlabel('Time (s)',fontsize=10)
     plt.xticks(range(sxx.shape[1])[::t_space], labels=(t[::t_space]*100.).astype(int)/100.)
