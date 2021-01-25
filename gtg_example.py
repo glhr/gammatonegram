@@ -1,3 +1,7 @@
+from __future__ import division
+import numpy as np
+import scipy.signal as sps
+import scipy.io.wavfile as wf
 import numpy as np
 from scipy.stats import norm as ssn
 import matplotlib.pyplot as plt
@@ -12,10 +16,7 @@ This python code does not contain all features present in MATLAB code.
 Sat May 27 15:37:50 2017 Maddie Cusimano, mcusi@mit.edu 27 May 2017
 """
 
-from __future__ import division
-import numpy as np
-import scipy.signal as sps
-import scipy.io.wavfile as wf
+
 
 def fft2gammatonemx(nfft, sr=20000, nfilts=64, width=1.0, minfreq=100,
                     maxfreq=10000, maxlen=1024):
@@ -183,7 +184,7 @@ def spectrogram_to_img(sxx,filename="res.png"):
     print(sxx.shape)
 
 
-def create_spectrogram(type="mel", audio_path, image_path, check=False, novoice_path=None, hop_length=160, n_fft=1024, fmin=20):
+def create_spectrogram(type, audio_path, image_path, check=False, novoice_path=None, hop_length=160, n_fft=1024, fmin=20):
     try:
         # sampling the audio with original sample rate - sr = none, return the audio value in ndarray
         audio_tensor, sr = librosa.load(audio_path, sr=None)
@@ -228,7 +229,7 @@ if __name__ == '__main__':
     #gtgplot(sxx, center_frequencies, len(sound), sampling_rate)
 
 
-    plt.figure(figsize=(10, 5))
+
     audio_tensor, sr = librosa.load(input, sr=None)
 
     print(len(audio_tensor))
@@ -242,7 +243,7 @@ if __name__ == '__main__':
                                 noverlap=nfft-nhop, nfft=nfft, detrend=False,
                                 scaling='spectrum', mode='magnitude')
 
-    sxx, center_frequencies = gammatonegram(Sxx,sr=sr,nfft=nfft,nhop=nhop,N=128,fmin=fmin,fmax=int(sr/2),width=1.0)
+    gamms, center_frequencies = gammatonegram(Sxx,sr=sr,nfft=nfft,nhop=nhop,N=128,fmin=fmin,fmax=int(sr/2),width=1.0)
 
     mels = librosa.feature.melspectrogram(S=Sxx, sr=sr, n_fft=nfft, hop_length=nhop, center=False, fmin=fmin)
     # convert power spectrogram to dB
@@ -252,28 +253,49 @@ if __name__ == '__main__':
     # sxx = librosa.power_to_db(sxx, ref=np.max)
 
     # log_constant=1e-80
-    sxx = 20.*np.log10(sxx) #convert to dB
-    mels = 20.*np.log10(mels) #convert to dB
+    gamms = 20.*np.log10(gamms / np.max(gamms)) #convert to dB
+    mels = 20.*np.log10(mels / np.max(mels)) #convert to dB
+    sxx = 20.*np.log10(Sxx / np.max(Sxx))
 
     print("--> Log_spectrogram", np.min(mels), np.max(mels))
     print(mels.shape)
-    plt.subplot(1,2,1)
 
+    plt.figure(figsize=(15, 5))
     t_space=20
     f_space=20
     time_per_pixel = 0.01
-    t = time_per_pixel * np.arange(sxx.shape[1])
+    t = time_per_pixel * np.arange(gamms.shape[1])
 
     vmax = None
     vmin = None
+
+    plt.subplot(1,3,1)
+
+    librosa.display.specshow(sxx, cmap='jet',
+                         sr = sr, fmin = fmin,
+                         y_axis='linear', fmax=sampling_rate/2,
+                         x_axis='time', x_coords = np.linspace(0,5900,num=94), vmax = vmax, vmin = vmin)
+    plt.xticks([i*62 for i in range(gamms.shape[1])[::t_space]], labels=(t[::t_space]*100.).astype(int)/100., fontsize=8)
+    plt.yticks(fontsize=8)
+    plt.xlim(0,gamms.shape[1])
+    plt.xlabel('Time (s)',fontsize=10)
+    plt.ylabel('Frequency (Hz)', fontsize=10)
+    plt.rc('xtick',labelsize=8)
+    plt.rc('ytick',labelsize=8)
+    plt.colorbar(format='%+2.0f dB')
+    plt.title('Linear-scale spectrogram')
+    plt.axis('equal')
+    plt.box(on=None)
+
+    plt.subplot(1,3,2)
 
     librosa.display.specshow(mels, cmap='jet',
                          sr = sr, hop_length = nhop, fmin = fmin,
                          y_axis='mel', fmax=sampling_rate/2,
                          x_axis='time', x_coords = np.linspace(0,3690,num=94), vmax = vmax, vmin = vmin)
-    plt.xticks([i*39 for i in range(sxx.shape[1])[::t_space]], labels=(t[::t_space]*100.).astype(int)/100., fontsize=8)
+    plt.xticks([i*40 for i in range(gamms.shape[1])[::t_space]], labels=(t[::t_space]*100.).astype(int)/100., fontsize=8)
     plt.yticks(fontsize=8)
-    plt.xlim(0,sxx.shape[1])
+    plt.xlim(0,gamms.shape[1])
     plt.xlabel('Time (s)',fontsize=10)
     plt.ylabel('Frequency (Hz)', fontsize=10)
     plt.rc('xtick',labelsize=8)
@@ -282,23 +304,25 @@ if __name__ == '__main__':
     plt.title('Mel spectrogram')
     plt.axis('equal')
     plt.box(on=None)
-    plt.subplot(1,2,2)
+
+    plt.subplot(1,3,3)
 
 
     print(time_per_pixel)
 
 
-    spectrogram_to_img(sxx,filename="gamma-res.png")
+    spectrogram_to_img(gamms,filename="gamma-res.png")
     spectrogram_to_img(mels,filename="mel-res.png")
 
 
-    plt.pcolormesh(sxx, cmap='jet',  vmax = vmax, vmin = vmin)
+    plt.pcolormesh(gamms, cmap='jet',  vmax = vmax, vmin = vmin)
 
     plt.xlabel('Time (s)',fontsize=10)
+    plt.ylabel('Frequency (Hz)', fontsize=10)
     print()
-    print(range(sxx.shape[1])[::t_space])
-    plt.xticks(range(sxx.shape[1])[::t_space], labels=(t[::t_space]*100.).astype(int)/100., fontsize=8)
-    plt.xlim(0,sxx.shape[1])
+    print(range(gamms.shape[1])[::t_space])
+    plt.xticks(range(gamms.shape[1])[::t_space], labels=(t[::t_space]*100.).astype(int)/100., fontsize=8)
+    plt.xlim(0,gamms.shape[1])
     plt.yticks(range(len(center_frequencies))[::f_space], labels=center_frequencies.astype(int)[::f_space], fontsize=8)
     plt.ylim(0,len(center_frequencies))
     plt.rc('xtick',labelsize=8)
